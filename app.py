@@ -1,21 +1,27 @@
 import json
-import argparse
+import sys
+import base64
+from io import BytesIO
 from paddleocr import PaddleOCR
 from PIL import Image
 
 # Initialize PaddleOCR with Vietnamese language
 ocr = PaddleOCR(use_angle_cls=True, lang='vi')
 
-def perform_ocr_on_image_file(image_path):
+def perform_ocr_on_base64_image(base64_str):
     try:
-        # Perform OCR on the specified image file
-        result = ocr.ocr(image_path, cls=True)
+        # Decode base64 to bytes
+        image_data = base64.b64decode(base64_str)
+        # Open image from bytes
+        img = Image.open(BytesIO(image_data))
+        
+        # Perform OCR on the image
+        result = ocr.ocr(img, cls=True)
 
         # Convert OCR results to JSON format
         output = []
         for idx, res in enumerate(result):
             for line in res:
-                # Each line is a text detected with position and confidence
                 output.append({
                     "text": line[1][0],        # Detected text
                     "confidence": line[1][1],  # Confidence score
@@ -29,14 +35,8 @@ def perform_ocr_on_image_file(image_path):
         return json.dumps({"error": str(e)}, ensure_ascii=False)
 
 if __name__ == "__main__":
-    # Set up argument parsing for image path
-    parser = argparse.ArgumentParser(description="Perform OCR on an image file.")
-    parser.add_argument("image_path", help="Path to the image file")
-
-    # Parse the arguments
-    args = parser.parse_args()
-    image_path = args.image_path
-
-    # Perform OCR and print the result
-    ocr_result_json = perform_ocr_on_image_file(image_path)
-    print(ocr_result_json)
+    # Đọc dữ liệu Base64 từ STDIN
+    base64_image = sys.stdin.read().strip()
+    # Thực hiện OCR và xuất kết quả
+    result = perform_ocr_on_base64_image(base64_image)
+    print(result)

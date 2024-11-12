@@ -1,7 +1,8 @@
 package com.ocr.example;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.util.Base64;
 
 public final class App {
     private App() {}
@@ -21,7 +22,7 @@ public final class App {
                 return;
             }
 
-            // Kiểm tra xem image đã tồn tại chưa
+            // Kiểm tra xem Docker image đã tồn tại chưa
             if (!dockerImageExists("4sandbox/devhub-ocr")) {
                 System.out.println("Docker image 4sandbox/devhub-ocr chưa tồn tại. Đang pull...");
                 pullDockerImage("4sandbox/devhub-ocr");
@@ -29,27 +30,27 @@ public final class App {
                 System.out.println("Docker image 4sandbox/devhub-ocr đã tồn tại.");
             }
 
-            // Chạy container với ảnh truyền vào
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                "docker", "run", "--rm",
-                "-v", imageFile.getParent() + ":/input", // Mount thư mục chứa ảnh vào container
-                "4sandbox/devhub-ocr", "python", "app.py", "/input/" + imageFile.getName()
-            );
+            // Đọc file ảnh và chuyển đổi sang Base64
+            byte[] imageBytes = Files.readAllBytes(imageFile.toPath());
+            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
-            // Chạy lệnh Docker
+            // Tạo ProcessBuilder để chạy Docker và truyền base64Image vào STDIN
+            ProcessBuilder processBuilder = new ProcessBuilder("docker", "run", "--rm", "4sandbox/devhub-ocr");
+            processBuilder.redirectErrorStream(true);
             Process process = processBuilder.start();
 
-            // Đọc kết quả đầu ra từ stdout của container
-            BufferedReader stdoutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = stdoutReader.readLine()) != null) {
-                System.out.println("[STDOUT] " + line);
+            // Ghi Base64 vào STDIN của Docker container
+            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()))) {
+                writer.write(base64Image);
+                writer.flush();
             }
 
-            // Đọc kết quả đầu ra từ stderr của container (để log lỗi)
-            BufferedReader stderrReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-            while ((line = stderrReader.readLine()) != null) {
-                System.err.println("[STDERR] " + line);
+            // Đọc kết quả đầu ra từ STDOUT của Docker container
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println("[OUTPUT] " + line);
+                }
             }
 
             // Chờ container hoàn tất xử lý ảnh
