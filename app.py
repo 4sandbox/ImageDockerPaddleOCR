@@ -1,40 +1,42 @@
 import json
 import sys
-import os
 from paddleocr import PaddleOCR
 from PIL import Image
 
-# Initialize PaddleOCR with Vietnamese language
-ocr = PaddleOCR(use_angle_cls=True, lang='vi')
+# Khởi tạo PaddleOCR với hỗ trợ ngôn ngữ tiếng Anh
+ocr = PaddleOCR(use_angle_cls=True, lang='en')
 
 def perform_ocr_on_image_file(image_path):
     try:
-        # Mở và xử lý file ảnh
-        img = Image.open(image_path)
+        # Mở ảnh từ đường dẫn
+        img = Image.open(image_path).convert('RGB')
+        
+        # Thực hiện OCR trên ảnh
         result = ocr.ocr(img, cls=True)
 
-        # Chuyển đổi kết quả OCR sang JSON
+        # Chuyển đổi kết quả OCR sang định dạng JSON
         output = []
-        for idx, res in enumerate(result):
+        for res in result:
             for line in res:
                 output.append({
-                    "text": line[1][0],        # Detected text
-                    "confidence": line[1][1],  # Confidence score
-                    "box": line[0]             # Bounding box coordinates
+                    "text": line[1][0],        # Văn bản đã nhận dạng
+                    "confidence": line[1][1],  # Độ tin cậy của văn bản
+                    "box": line[0]             # Tọa độ hộp bao quanh văn bản
                 })
 
-        # Xóa file ảnh sau khi xử lý
-        os.remove(image_path)
-
-        # Trả về kết quả JSON
+        # Xuất kết quả dưới dạng JSON
         return json.dumps(output, ensure_ascii=False)
 
     except Exception as e:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
 
 if __name__ == "__main__":
-    # Đọc đường dẫn file ảnh từ đối số dòng lệnh
+    # Nhận đường dẫn ảnh từ dòng lệnh
+    if len(sys.argv) < 2:
+        print(json.dumps({"error": "No image path provided."}))
+        sys.exit(1)
+    
     image_path = sys.argv[1]
-    # Thực hiện OCR và xuất kết quả
+    # Thực hiện OCR và in kết quả ra STDOUT dưới dạng JSON
     result = perform_ocr_on_image_file(image_path)
     print(result)
