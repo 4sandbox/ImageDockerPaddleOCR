@@ -1,24 +1,19 @@
 import json
 import sys
-import base64
-from io import BytesIO
+import os
 from paddleocr import PaddleOCR
 from PIL import Image
 
 # Initialize PaddleOCR with Vietnamese language
 ocr = PaddleOCR(use_angle_cls=True, lang='vi')
 
-def perform_ocr_on_base64_image(base64_str):
+def perform_ocr_on_image_file(image_path):
     try:
-        # Decode base64 to bytes
-        image_data = base64.b64decode(base64_str)
-        # Open image from bytes
-        img = Image.open(BytesIO(image_data))
-        
-        # Perform OCR on the image
+        # Mở và xử lý file ảnh
+        img = Image.open(image_path)
         result = ocr.ocr(img, cls=True)
 
-        # Convert OCR results to JSON format
+        # Chuyển đổi kết quả OCR sang JSON
         output = []
         for idx, res in enumerate(result):
             for line in res:
@@ -28,15 +23,18 @@ def perform_ocr_on_base64_image(base64_str):
                     "box": line[0]             # Bounding box coordinates
                 })
 
-        # Output JSON result
+        # Xóa file ảnh sau khi xử lý
+        os.remove(image_path)
+
+        # Trả về kết quả JSON
         return json.dumps(output, ensure_ascii=False)
 
     except Exception as e:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
 
 if __name__ == "__main__":
-    # Đọc dữ liệu Base64 từ STDIN
-    base64_image = sys.stdin.read().strip()
+    # Đọc đường dẫn file ảnh từ đối số dòng lệnh
+    image_path = sys.argv[1]
     # Thực hiện OCR và xuất kết quả
-    result = perform_ocr_on_base64_image(base64_image)
+    result = perform_ocr_on_image_file(image_path)
     print(result)
