@@ -23,8 +23,8 @@ jobs:
 
     
       - name: Build Docker image
-        run: docker build -t 4sandbox/ImageDockerPaddleOCR .
+        run: docker build -t 4sandbox/devhub-ocr .
 
       
       - name: Push Docker image to Docker Hub
-        run: docker push 4sandbox/ImageDockerPaddleOCR
+        run: docker push 4sandbox/devhub-ocr
