@@ -3,12 +3,12 @@ FROM python:3.8-slim
 
 # Cài đặt các gói thư viện hệ thống cần thiết cho PaddleOCR và PaddlePaddle
 RUN apt-get update && \
-    apt-get install -y libgl1-mesa-glx libglib2.0-0 libgomp1 && \
+    apt-get install -y libgl1-mesa-glx libglib2.0-0 libgomp1 python3 python3-pip && \
     rm -rf /var/lib/apt/lists/*
 
 # Cài đặt PaddlePaddle và PaddleOCR
 RUN pip install --no-cache-dir paddlepaddle paddleocr
-
+RUN pip3 install opencv-python
 # Thiết lập thư mục làm việc trong container
 WORKDIR /app
 
